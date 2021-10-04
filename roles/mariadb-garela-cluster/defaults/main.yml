@@ -1,0 +1,3 @@
+---
+# defaults file for mariadb-garela-cluster
+mariadb_root_passwd: abc251199

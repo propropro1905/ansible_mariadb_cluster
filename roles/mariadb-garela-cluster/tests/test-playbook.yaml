@@ -1,0 +1,19 @@
+---
+- hosts: linux
+  
+  tasks:
+    - name: stop mariadb
+      service:
+        name: mariadb
+        state: stopped
+    - name: remove galera config (if exist)
+      file:
+        path: /etc/mysql/conf.d/galera.cnf
+        state: absent
+    - name: remove mariadb and mysql
+      apt:
+        name: mariadb-server
+        state: absent
+        purge: yes
+        autoremove: yes
+        autoclean: yes

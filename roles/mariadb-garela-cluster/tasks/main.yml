@@ -1,0 +1,65 @@
+---
+# tasks file for mariadb-galera-cluster
+- name: install and config in ubuntu
+  block:
+    - name: remove galera config (if exist)
+      file:
+        path: /etc/mysql/conf.d/galera.cnf
+        state: absent
+    - name: update repository cache
+      apt:
+        update_cache: yes
+    - name: install mariadb and pip
+      apt:
+        pkg:
+          - mariadb-server 
+          - python3-pip
+        state: present
+
+    - name: start mariadb
+      service:
+        name: mariadb
+        state: started
+    - name: install PyMysql
+      pip:
+        name: pymysql
+    - name: Create .my.cnf
+      template:
+        src: "client.my.cnf.j2"
+        dest: "/root/.my.cnf"
+        owner: root
+        group: root
+        mode: 0600
+    - name: Set root user password
+  # If .my.cnf already exists, this will cause an mysql-root-password update.
+      mysql_user:
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+        name: root
+        host: "%"
+        password: "{{ mariadb_root_passwd}}"
+        check_implicit_admin: true
+  when: ansible_distribution == "Ubuntu"
+- name: stop mariadb
+  service:
+    name: mariadb
+    state: stopped
+- name: start galera cluster node 1
+  block:
+  - name: set galera config
+    template:
+      src: "galera_cnf.j2"
+      dest: "/etc/mysql/conf.d/galera.cnf"
+      mode: 0644
+  - name: set safe_to_bootstrap state
+    template:
+      src: "grastate.dat.j2"
+      dest: "/var/lib/mysql/grastate.dat"
+      mode: 0660
+  - name: start galera cluster
+    command: galera_new_cluster
+  when: ansible_hostname == "ubuntu1"
+- name: start other node
+  include: start_other_node.yml
+
+
+
